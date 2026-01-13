@@ -75,7 +75,7 @@ export default function App() {
   const timerRef = useRef<number | null>(null);
 
   const [stats, setStats] = useState<UserStats>(() => {
-    const saved = localStorage.getItem('yeoryang_stats_v11');
+    const saved = localStorage.getItem('yeoryang_stats_v12');
     return saved ? JSON.parse(saved) : {
       xp: 0,
       level: 1,
@@ -88,7 +88,7 @@ export default function App() {
   });
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => {
-    const saved = localStorage.getItem('yeoryang_hall_v11');
+    const saved = localStorage.getItem('yeoryang_hall_v12');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -99,12 +99,11 @@ export default function App() {
   };
 
   useEffect(() => {
-    localStorage.setItem('yeoryang_stats_v11', JSON.stringify(stats));
+    localStorage.setItem('yeoryang_stats_v12', JSON.stringify(stats));
   }, [stats]);
 
   useEffect(() => {
-    // 앱이 로드될 때 또는 리더보드가 바뀔 때 로컬스토리지 동기화
-    localStorage.setItem('yeoryang_hall_v11', JSON.stringify(leaderboard));
+    localStorage.setItem('yeoryang_hall_v12', JSON.stringify(leaderboard));
   }, [leaderboard]);
 
   useEffect(() => {
@@ -139,15 +138,18 @@ export default function App() {
   }, [state]);
 
   const startNextRandomQuiz = () => {
+    // 5,000개 전수 순환 시스템: 중복 방지 로직 강화
     const pool = POPULAR_BOOKS.filter(book => !solvedQuizIds.includes(book.id));
     
     if (pool.length === 0) {
+      // 모든 문제를 다 풀었을 때만 초기화 (5,000개 도달 시)
       setSolvedQuizIds([]);
       const book = POPULAR_BOOKS[Math.floor(Math.random() * POPULAR_BOOKS.length)];
       setupQuiz(book);
       return;
     }
 
+    // 풀지 않은 문제 중 무작위 선택
     const randomIndex = Math.floor(Math.random() * pool.length);
     const book = pool[randomIndex];
     setupQuiz(book);
@@ -179,7 +181,8 @@ export default function App() {
   const startNewExploration = () => {
     setTimeLeft(60);
     setSessionScore(0);
-    setSolvedQuizIds([]); 
+    // 세션이 바뀌어도 전체 중복 방지는 유지하고 싶다면 solvedQuizIds를 초기화하지 않음
+    // 여기서는 '게임 한 판'의 관점에서 현재 푼 리스트만 유지
     setStats(prev => ({ ...prev, streak: 0 })); 
     startNextRandomQuiz();
   };
@@ -240,14 +243,13 @@ export default function App() {
       date: new Date().toLocaleDateString()
     };
     
-    // 영구 저장을 위해 기존 리더보드와 병합 후 저장
-    const currentList = JSON.parse(localStorage.getItem('yeoryang_hall_v11') || '[]');
+    const currentList = JSON.parse(localStorage.getItem('yeoryang_hall_v12') || '[]');
     const updated = [...currentList, newEntry]
       .sort((a, b) => b.score - a.score)
       .slice(0, 50); 
     
     setLeaderboard(updated);
-    localStorage.setItem('yeoryang_hall_v11', JSON.stringify(updated));
+    localStorage.setItem('yeoryang_hall_v12', JSON.stringify(updated));
     setState(AppState.LEADERBOARD);
     setPlayerName('');
   };
@@ -303,8 +305,8 @@ export default function App() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">독서 퀴즈 보물섬</span>
             </h2>
             <p className="text-2xl md:text-3xl text-slate-300 mb-14 max-w-3xl font-medium leading-relaxed">
-              2,000개의 지혜가 담긴 보물을 찾아 떠나세요!<br/>
-              5회 연속 정답 시 3초의 보너스 시간이 주어집니다.
+              절대 중복 없는 5,000개의 지혜 퀴즈가 준비되었습니다!<br/>
+              5콤보마다 3초 보너스! 모든 보물을 찾아보세요.
             </p>
             
             <button 
@@ -325,7 +327,7 @@ export default function App() {
               <div className="lg:w-80 bg-slate-950/50 p-12 text-white flex flex-col justify-between border-r border-white/5 relative overflow-hidden">
                 <div className="absolute -bottom-10 -left-10 text-[180px] opacity-10 rotate-12 pointer-events-none">📚</div>
                 <div className="relative z-10">
-                  <span className="text-blue-500 font-black text-[10px] tracking-[0.5em] uppercase mb-4 block tracking-widest">CURRENT BOOK</span>
+                  <span className="text-blue-500 font-black text-[10px] tracking-[0.5em] uppercase mb-4 block tracking-widest">MISSION</span>
                   <h4 className="text-4xl font-black mb-12 leading-tight tracking-tighter glow-text">{currentQuiz.bookTitle}</h4>
                   <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 backdrop-blur-3xl shadow-inner">
                     <div className="text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest text-center">콤보 카운트</div>
@@ -336,7 +338,7 @@ export default function App() {
               <div className="flex-1 p-12 lg:p-24 bg-slate-900/40 relative">
                 <div className="flex items-center gap-4 mb-14">
                   <div className="h-2 w-24 bg-blue-500 rounded-full glow-text"></div>
-                  <span className="font-game text-slate-500 text-sm tracking-widest uppercase">지혜 탐험 중 ({solvedQuizIds.length} / 2000)</span>
+                  <span className="font-game text-slate-500 text-sm tracking-widest uppercase">지혜 탐험 중 ({solvedQuizIds.length} / 5000)</span>
                 </div>
                 <h3 className="text-4xl md:text-5xl font-black text-white mb-20 leading-[1.1] tracking-tighter">
                   {currentQuiz.question}
@@ -518,9 +520,9 @@ export default function App() {
         <div className="max-w-3xl mx-auto">
           <p className="text-blue-500 text-sm font-black uppercase tracking-[0.8em] mb-6">Yeoryang Elementary School Library</p>
           <p className="text-lg font-medium leading-relaxed max-w-lg mx-auto mb-12 italic opacity-60">
-            "독서는 마음의 양식입니다. 2,000개의 지혜를 모두 모으는 그날까지 탐험을 멈추지 마세요."
+            "5,000개의 보물을 모두 정복하는 그날까지 여러분의 도전을 응원합니다!"
           </p>
-          <p className="text-[10px] uppercase tracking-[0.3em] opacity-30">© 2024 Yeoryang Library - Permanent Legend Edition</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] opacity-30">© 2024 Yeoryang Library - Ultimate 5000 Edition</p>
         </div>
       </footer>
     </div>
